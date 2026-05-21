@@ -2,7 +2,24 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export const Main = () => {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/auth/logout', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (res.ok) {
+        document.cookie = 'token=; path=/; max-age=0';
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   return (
     <div className="main-container">
       <section className="main-hero">
@@ -13,6 +30,7 @@ export const Main = () => {
             <div className="main-actions">
               <button className="main-button primary" onClick={() => navigate('/app/shareshort')}>Share Now</button>
               <button className="main-button ghost" onClick={() => navigate('/signup')}>Create Account</button>
+              <button className="main-button ghost" onClick={handleLogout}>Logout</button>
             </div>
           </div>
           <div className="main-right">

@@ -1,11 +1,12 @@
 import express from 'express'
-import { signup , login } from '../Controllers/authController.js';
+import { signup , login, userNameChecker } from '../Controllers/authController.js';
 import auth from '../Middlewares/authMiddleware.js';
 import User from '../Models/userModel.js';
 const router = express.Router();
 
 router.post('/signup',signup);
 router.post('/login',login);
+router.post('/checkUsername',userNameChecker);
 router.get('/me',auth, async (req,res) => {
   try {
     const user = await User.findById(req.user.id).select('username email');

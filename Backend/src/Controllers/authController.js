@@ -78,3 +78,21 @@ export const login = async (req, res) => {
     return res.status(500).json({ message: "Server Error" });
   }
 };
+
+
+export const userNameChecker = async (req, res) => {
+  const { username } = req.body;
+  const existingUName = await User.findOne({ username });
+
+  if (existingUName) {
+    return res.json({
+      available: false,
+      message: "Username already taken",
+    });
+  }
+
+  res.json({
+    available: true,
+    message: "Username available",
+  });
+};

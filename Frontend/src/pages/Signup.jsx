@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Signup() {
@@ -7,13 +7,48 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const debounceTimer = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, []);
+
+  const checkUsername = async (name) => {
+    const res = await fetch('http://localhost:5000/auth/checkUsername', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: name }),
+    });
+    const data = await res.json();
+    if (data.message) setMessage(data.message);
+    setUsernameAvailable(data.available === true);
+    return data.available === true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
       alert('Passwords do not match');
+      return;
+    }
+
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) {
+      setMessage('Username is required');
+      return;
+    }
+
+    const isAvailable = usernameAvailable === true
+      ? true
+      : await checkUsername(trimmedUsername);
+
+    if (!isAvailable) {
       return;
     }
 
@@ -28,7 +63,7 @@ export default function Signup() {
 
       if (response.ok) {
         const data = await response.json();
-        localStorage.setItem('token', data.token);
+        document.cookie = `token=${data.token}; path=/;`;
         navigate('/app');
       }
     } catch (error) {
@@ -37,6 +72,31 @@ export default function Signup() {
       setLoading(false);
     }
   };
+
+  const handlechange1 = (e) => {
+    const name = e.target.value;
+    setUsername(name);
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    if (!name.trim()) {
+      setMessage('');
+      setUsernameAvailable(null);
+      return;
+    }
+
+    setUsernameAvailable(null);
+
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        await checkUsername(name.trim());
+      } catch (error) {
+        console.error('Username check failed:', error);
+        setUsernameAvailable(null);
+      }
+    }, 500);
+  };
+
 
   return (
     <div className="signup-container">
@@ -50,11 +110,12 @@ export default function Signup() {
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={handlechange1}
               placeholder="Choose your username"
               required
               className="signup-input"
             />
+            {message && <p className="signup-message">{message}</p>}
           </div>
 
           <div className="signup-input-group">
@@ -93,7 +154,11 @@ export default function Signup() {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="signup-button">
+          <button
+            type="submit"
+            disabled={loading || usernameAvailable !== true}
+            className="signup-button"
+          >
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
